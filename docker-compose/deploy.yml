@@ -1,0 +1,15 @@
+version: '2.4'
+
+services:
+  deploy:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: deploy
+    ports:
+      - 8000:8000
+    runtime: nvidia
+    environment:
+      - RELEASE_VERSION
+    restart: on-failure
+    command: uvicorn main:app --reload --host 0.0.0.0
