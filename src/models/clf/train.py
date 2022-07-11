@@ -25,6 +25,9 @@ def get_args():
     argument_parser.add_argument('--num_workers', default=3, required=False)
     argument_parser.add_argument('--lr', default=0.0001, required=False)
     argument_parser.add_argument('--one_cycle_max_lr', default=0.005, required=False)
+    argument_parser.add_argument('--preprocessed_save_dir',
+                                 default=ProjectPaths.data_dir.joinpath('external', 'preprocessed'),
+                                 type=pathlib.Path, required=False)
 
     return argument_parser.parse_args()
 
@@ -36,7 +39,8 @@ if __name__ == '__main__':
     model = get_network(args.n_classes).to(args.device)
     train_loader, val_loader, test_loader = get_loaders(args.split_dir,
                                                         batch_size=args.batch_size,
-                                                        num_workers=args.num_workers)
+                                                        num_workers=args.num_workers,
+                                                        preprocessed_save_dir=args.preprocessed_save_dir)
     criterion = UncertaintyLossWrapper([
         torch.nn.BCEWithLogitsLoss(), torch.nn.MSELoss()
     ])
@@ -49,9 +53,9 @@ if __name__ == '__main__':
     task = clearml.Task.init('skin_disease', args.task_name)
     scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=args.one_cycle_max_lr,
                                                     steps_per_epoch=len(train_loader),
-                                                    epochs=args.epochs)
+                                                    epochs=args.n_epochs)
 
     trainer = Trainer(model, optimizer, criterion, metrics, train_loader,
-                      val_loader, task, args.device, 20, args.epochs,
+                      val_loader, task, args.device, 20, args.n_epochs,
                       ProjectPaths.models_dir.joinpath(args.task_name), scheduler)
     trainer.run()
