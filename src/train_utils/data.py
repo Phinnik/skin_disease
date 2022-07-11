@@ -9,7 +9,11 @@ from src.conf.config import ClfModelConfig
 from pytorch_metric_learning.samplers import MPerClassSampler
 
 
-def get_loaders(split_dir: pathlib.Path, batch_size: int, num_workers: int = 0, debug=False) -> list[DataLoader]:
+def get_loaders(split_dir: pathlib.Path,
+                batch_size: int,
+                num_workers: int = 0,
+                debug=False,
+                preprocessed_save_dir: pathlib.Path = None) -> list[DataLoader]:
     """
     Returns list of train, val and test DataLoaders
 
@@ -17,6 +21,7 @@ def get_loaders(split_dir: pathlib.Path, batch_size: int, num_workers: int = 0, 
     :param batch_size: batch size of DataLoader
     :param num_workers: number of workers of DataLoader
     :param debug: if set to True, puts small amount of data into DataLoaders
+    :param preprocessed_save_dir: directory for preprocessed data
     """
     transforms = A.Compose([
         A.PadIfNeeded(500, 500),
@@ -31,7 +36,8 @@ def get_loaders(split_dir: pathlib.Path, batch_size: int, num_workers: int = 0, 
 
     dataloaders = []
     for split_type in ['train', 'val', 'test']:
-        augs = augmentations if split_type == 'train' else None
+        split_augmentations = augmentations if split_type == 'train' else None
+        split_preprocessed_save_dir = preprocessed_save_dir.joinpath(split_type) if preprocessed_save_dir else None
 
         split_df = pd.read_csv(split_dir.joinpath(f'{split_type}.csv'))
         if debug:
@@ -40,11 +46,19 @@ def get_loaders(split_dir: pathlib.Path, batch_size: int, num_workers: int = 0, 
                 class_dfs.append(split_df[split_df['class_title'] == class_title].sample(20))
             split_df = pd.concat(class_dfs)
 
-        dataset = MulticlassClfDataset(split_df, transforms=transforms, augmentations=augs)
-        sampler = MPerClassSampler(dataset.split_df['class_title'], 7,
-                                   batch_size=batch_size, length_before_new_iter=144 * 32)
-        dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
-                                worker_init_fn=seed_worker, generator=dataloader_random_gen,
+        dataset = MulticlassClfDataset(split_df,
+                                       transforms=transforms,
+                                       augmentations=split_augmentations,
+                                       preprocessed_save_dir=split_preprocessed_save_dir)
+        sampler = MPerClassSampler(dataset.split_df['class_title'],
+                                   m=7,
+                                   batch_size=batch_size,
+                                   length_before_new_iter=144 * 32)
+        dataloader = DataLoader(dataset,
+                                batch_size=batch_size,
+                                num_workers=num_workers,
+                                worker_init_fn=seed_worker,
+                                generator=dataloader_random_gen,
                                 sampler=sampler if split_type == 'train' else None)
         dataloaders.append(dataloader)
     return dataloaders

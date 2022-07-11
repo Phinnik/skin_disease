@@ -1,4 +1,5 @@
 import pathlib
+import pickle
 
 from src.conf.config import ProjectPaths
 
@@ -15,7 +16,8 @@ class MulticlassClfDataset(Dataset):
                  split_df: pd.DataFrame,
                  binarizer: LabelBinarizer = None,
                  transforms: A.Compose = None, augmentations: A.Compose = None,
-                 data_dir: pathlib.Path = ProjectPaths.data_dir):
+                 data_dir: pathlib.Path = ProjectPaths.data_dir,
+                 preprocessed_save_dir: pathlib.Path = None):
         """
         Dataset returns image, encoded class and age
 
@@ -24,6 +26,7 @@ class MulticlassClfDataset(Dataset):
         :param transforms: image preprocessing transforms
         :param augmentations: image augmentations transforms
         :param data_dir: base data directory
+        :param preprocessed_save_dir: directory for preprocessed data
         """
         self.split_df = split_df
         self.data_dir = data_dir
@@ -32,9 +35,12 @@ class MulticlassClfDataset(Dataset):
         self.binarizer = binarizer
         self.transforms = transforms
         self.augmentations = augmentations
+        self.preprocessed_save_dir = preprocessed_save_dir
+        if self.preprocessed_save_dir is not None:
+            self.preprocessed_save_dir.mkdir(exist_ok=True, parents=True)
         super(MulticlassClfDataset, self).__init__()
 
-    def __getitem__(self, item):
+    def load_and_preprocess(self, item):
         row = self.split_df.iloc[item]
         image_rel_fp, class_title = row['relative_path'], row['class_title']
         image_fp = self.data_dir.joinpath(image_rel_fp)
@@ -43,6 +49,21 @@ class MulticlassClfDataset(Dataset):
         image = np.array(Image.open(image_fp))
         if self.transforms:
             image = self.transforms(image=image)['image']
+        return image, class_title_encoding, age
+
+    def __getitem__(self, item):
+        # preprocessed data saving logics
+        if self.preprocessed_save_dir is not None:
+            preprocessed_fp = self.preprocessed_save_dir.joinpath(f'{item}.pkl')
+            if preprocessed_fp.exists():
+                with open(preprocessed_fp, 'rb') as f:
+                    image, class_title_encoding, age = pickle.load(f)
+            else:
+                image, class_title_encoding, age = self.load_and_preprocess(item)
+                with open(preprocessed_fp, 'wb') as f:
+                    pickle.dump((image, class_title_encoding, age), f)
+        else:
+            image, class_title_encoding, age = self.load_and_preprocess(item)
 
         if self.augmentations:
             image = self.augmentations(image=image)['image']
