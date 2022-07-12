@@ -1,4 +1,3 @@
-import os
 import io
 from PIL import Image
 import torch
@@ -9,11 +8,8 @@ from src.models.clf.net import get_network
 
 app = FastAPI()
 
-RELEASE_VERSION = os.getenv("RELEASE_VERSION", None)
-assert RELEASE_VERSION is not None, "Release version is not specified in .env file"
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model_checkpoint_fp = ProjectPaths.models_dir.joinpath('model_releases', RELEASE_VERSION, "models.pkl")
+model_checkpoint_fp = ProjectPaths.models_dir.joinpath('model_releases', 'current', "model.pkl")
 model = get_network(ClfModelConfig.n_classes, model_checkpoint_fp)
 model = model.eval()
 model = model.to(device)
