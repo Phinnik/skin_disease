@@ -50,8 +50,8 @@ def get_loaders(split_dir: pathlib.Path,
                                        transforms=transforms,
                                        augmentations=split_augmentations,
                                        preprocessed_save_dir=split_preprocessed_save_dir)
-        sampler = MPerClassSampler(dataset.split_df['class_title'],
-                                   m=7,
+        sampler = MPerClassSampler(dataset.split_df['is_norm'],
+                                   m=15,
                                    batch_size=batch_size,
                                    length_before_new_iter=144 * 32)
         dataloader = DataLoader(dataset,

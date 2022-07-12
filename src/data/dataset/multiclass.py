@@ -46,10 +46,11 @@ class MulticlassClfDataset(Dataset):
         image_fp = self.data_dir.joinpath(image_rel_fp)
         class_title_encoding = self.binarizer.transform([class_title])[0]
         age = np.log(row['age'] + 0.01) / 4.45
+        is_norm = row['is_norm']
         image = np.array(Image.open(image_fp))
         if self.transforms:
             image = self.transforms(image=image)['image']
-        return image, class_title_encoding, age
+        return image, class_title_encoding, age, is_norm
 
     def __getitem__(self, item):
         # preprocessed data saving logics
@@ -57,18 +58,18 @@ class MulticlassClfDataset(Dataset):
             preprocessed_fp = self.preprocessed_save_dir.joinpath(f'{item}.pkl')
             if preprocessed_fp.exists():
                 with open(preprocessed_fp, 'rb') as f:
-                    image, class_title_encoding, age = pickle.load(f)
+                    image, class_title_encoding, age, is_norm = pickle.load(f)
             else:
-                image, class_title_encoding, age = self.load_and_preprocess(item)
+                image, class_title_encoding, age, is_norm = self.load_and_preprocess(item)
                 with open(preprocessed_fp, 'wb') as f:
-                    pickle.dump((image, class_title_encoding, age), f)
+                    pickle.dump((image, class_title_encoding, age, is_norm), f)
         else:
-            image, class_title_encoding, age = self.load_and_preprocess(item)
+            image, class_title_encoding, age, is_norm = self.load_and_preprocess(item)
 
         if self.augmentations:
             image = self.augmentations(image=image)['image']
 
-        return image, class_title_encoding, age
+        return image, class_title_encoding, age, is_norm
 
     def __len__(self):
         return len(self.split_df)

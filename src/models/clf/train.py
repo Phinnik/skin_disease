@@ -3,7 +3,6 @@ from src.trainer.clf_trainer import Trainer
 from src.models.clf.net import get_network
 from src.train_utils.reproducibility import set_seed
 from src.train_utils.data import get_loaders
-from src.loss.wrapper import UncertaintyLossWrapper
 from src.conf.config import ProjectPaths, ClfModelConfig
 import torchmetrics
 import clearml
@@ -21,10 +20,10 @@ def get_args():
     argument_parser.add_argument('--split_dir',
                                  default=ProjectPaths.data_dir.joinpath('processed/splits/skin_cancer_mnist_split'),
                                  type=pathlib.Path, required=False)
-    argument_parser.add_argument('--batch_size', default=28, required=False)
+    argument_parser.add_argument('--batch_size', default=30, required=False)
     argument_parser.add_argument('--num_workers', default=3, required=False)
     argument_parser.add_argument('--lr', default=0.0001, required=False)
-    argument_parser.add_argument('--one_cycle_max_lr', default=0.005, required=False)
+    argument_parser.add_argument('--one_cycle_max_lr', default=0.001, required=False)
     argument_parser.add_argument('--preprocessed_save_dir',
                                  default=ProjectPaths.data_dir.joinpath('external', 'preprocessed'),
                                  type=pathlib.Path, required=False)
@@ -41,14 +40,11 @@ if __name__ == '__main__':
                                                         batch_size=args.batch_size,
                                                         num_workers=args.num_workers,
                                                         preprocessed_save_dir=args.preprocessed_save_dir)
-    criterion = UncertaintyLossWrapper([
-        torch.nn.BCEWithLogitsLoss(), torch.nn.MSELoss()
-    ])
+    criterion = torch.nn.BCEWithLogitsLoss()
     optimizer = torch.optim.AdamW(list(model.parameters()) + list(criterion.parameters()), lr=args.lr)
     metrics = torchmetrics.MetricCollection({
-        'AgeMSE': torchmetrics.MeanSquaredError(),
-        'ClfAUROC': torchmetrics.AUROC(num_classes=args.n_classes),
-        'ClfConfusionMatrix': torchmetrics.ConfusionMatrix(args.n_classes)
+        'ClfAUROC': torchmetrics.AUROC(num_classes=args.n_classes + 1),
+        'ClfConfusionMatrix': torchmetrics.ConfusionMatrix(args.n_classes + 1)
     })
     task = clearml.Task.init('skin_disease', args.task_name)
     scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=args.one_cycle_max_lr,
