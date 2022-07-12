@@ -20,7 +20,8 @@ RUN python -m ensurepip --upgrade && \
 COPY requirements.txt requirements.txt
 RUN pip3 install --no-cache-dir -r requirements.txt
 COPY setup.py .
-COPY models/model_releases/ models/model_releases/
+ARG RELEASE_VERSION
+COPY models/model_releases/$RELEASE_VERSION/* models/model_releases/current
 COPY src/ src/
 RUN pip3 install --no-cache-dir -e .
 WORKDIR src/app/
