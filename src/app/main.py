@@ -23,5 +23,5 @@ def read_root():
 @app.post("/classify")
 async def classify(image: bytes = File()):
     image = Image.open(io.BytesIO(image))
-    result = get_prediction(image, device, model)
-    return {"Pathology": result}
+    probability, prediction = get_prediction(image, device, model)
+    return {"probability": float(probability), 'prediction': int(prediction)}

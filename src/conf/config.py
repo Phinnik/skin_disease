@@ -13,4 +13,5 @@ class ClfModelConfig:
     image_width = 224
     pixel_value_mean = [0.7635212, 0.54612796, 0.57053041]
     pixel_value_std = [0.1412119, 0.15289106, 0.17032799]
-    n_classes = 7
+    n_classes = 1
+    risk_threshold = 0.05

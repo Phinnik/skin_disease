@@ -9,7 +9,6 @@ from src.conf.config import ClfModelConfig
 class SkinDiseaseModel(ResNet):
     def __init__(self, block: Type[Union[BasicBlock, Bottleneck]], layers: list[int], n_classes: int):
         super().__init__(block, layers)
-        self.age_head = torch.nn.Linear(2048, 1)
         self.fc = torch.nn.Linear(in_features=2048, out_features=n_classes)
 
     def get_features(self, x: Tensor) -> Tensor:
@@ -27,17 +26,12 @@ class SkinDiseaseModel(ResNet):
         x = torch.flatten(x, 1)
         return x
 
-    def get_age_prediction(self, features: Tensor) -> Tensor:
-        x = self.age_head(features)
-        return x
-
     def get_clf_prediction(self, features):
         x = self.fc(features)
         return x
 
     def _forward_impl(self, x: Tensor) -> Tensor:
         x = self.get_features(x)
-        age = self.get_age_prediction(x)
         x = self.get_clf_prediction(x)
         return x
 

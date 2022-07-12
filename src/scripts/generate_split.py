@@ -58,9 +58,10 @@ def generate_skin_cancer_mnist_split():
     for i, row in metadata_df.iterrows():
         image_fp = next(dataset_dir.glob(f"ham10000_images_part*/{row['image_id']}*"))
         class_title = class_matching[row['dx']]
+        is_norm = row['dx'] == 'nv'
         relative_path = pathlib.Path().joinpath(*image_fp.parts[len(ProjectPaths.data_dir.parts):])
-        df.append([relative_path, class_title, row['age']])
-    df = pd.DataFrame(df, columns=['relative_path', 'class_title', 'age'])
+        df.append([relative_path, class_title, row['age'], is_norm])
+    df = pd.DataFrame(df, columns=['relative_path', 'class_title', 'age', 'is_norm'])
 
     train, val, test = train_val_test_split(df, 0.5, 0.3, target_col='class_title', random_state=42)
     for df, split_name in zip([train, val, test], ['train', 'val', 'test']):
